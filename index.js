@@ -5,6 +5,17 @@ const mongoose = require('mongoose');
 mongoose.set('strictQuery', false);
 app.set('view engine', 'ejs');
 app.use('/public', express.static('public'));
+const session = require('express-session');
+
+// Session
+app.use(
+  session({
+    secret: 'secretKey',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 300000 },
+  })
+);
 
 // Connecting to MongoDB
 mongoose
@@ -18,29 +29,39 @@ mongoose
 
 // Defining the Schema and Model
 const Schema = mongoose.Schema;
+
 const BlogSchema = new Schema({
   title: String,
   summary: String,
   image: String,
   textBody: String,
 });
+
+const UserSchema = new Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+});
+
 const BlogModel = mongoose.model('blog', BlogSchema);
+const UserModel = mongoose.model('user', UserSchema);
 
 // BLOG function
 // Create blog
 app.get('/blog/create', (req, res) => {
-  res.render('blogCreate');
+  if (req.session.userId) {
+    res.render('blogCreate');
+  } else {
+    res.redirect('/user/login');
+  }
 });
 
 app.post('/blog/create', (req, res) => {
-  console.log('reqの中身', req.body);
   BlogModel.create(req.body, (error, savedBlogData) => {
     if (error) {
-      console.log('データの書き込みが失敗しました');
-      res.send('ブログデータの投稿が失敗しました');
+      res.render('error', { message: '/blog/createのエラー' });
     } else {
-      console.log('データの書き込みが成功しました');
-      res.send('ブログデータの投稿が成功しました');
+      res.redirect('/');
     }
   });
 });
@@ -48,31 +69,30 @@ app.post('/blog/create', (req, res) => {
 // Read All Blogs
 app.get('/', async (req, res) => {
   const allBlogs = await BlogModel.find();
-  res.render('index', { allBlogs });
+  res.render('index', { allBlogs: allBlogs, session: req.session.userId });
 });
 
 // Read Single Blog
 app.get('/blog/:id', async (req, res) => {
   const singleBlog = await BlogModel.findById(req.params.id);
-  console.log('singleBlog', singleBlog);
-  res.render('blogRead', { singleBlog });
+  res.render('blogRead', {
+    singleBlog: singleBlog,
+    session: req.session.userId,
+  });
 });
 
 // Update Blog
 app.get('/blog/update/:id', async (req, res) => {
   const singleBlog = await BlogModel.findById(req.params.id);
-  console.log('singleBlog', singleBlog);
   res.render('blogUpdate', { singleBlog });
 });
 
-app.post('/blog/update/:id', async (req, res) => {
+app.post('/blog/update/:id', (req, res) => {
   BlogModel.updateOne({ _id: req.params.id }, req.body).exec((error) => {
     if (error) {
-      console.log('データの更新が失敗しました');
-      res.send('ブログデータの更新が失敗しました');
+      res.render('error', { message: '/blog/updateのエラー' });
     } else {
-      console.log('データの更新が成功しました');
-      res.send('ブログデータの更新が成功しました');
+      res.redirect('/');
     }
   });
 });
@@ -80,18 +100,59 @@ app.post('/blog/update/:id', async (req, res) => {
 // Delete Blog
 app.get('/blog/delete/:id', async (req, res) => {
   const singleBlog = await BlogModel.findById(req.params.id);
-  console.log('singleBlog', singleBlog);
   res.render('blogDelete', { singleBlog });
 });
 
-app.post('/blog/delete/:id', async (req, res) => {
+app.post('/blog/delete/:id', (req, res) => {
   BlogModel.deleteOne({ _id: req.params.id }).exec((error) => {
     if (error) {
-      console.log('データの削除が失敗しました');
-      res.send('ブログデータの削除が失敗しました');
+      res.render('error', { message: '/blog/deleteのエラー' });
     } else {
-      console.log('データの削除が成功しました');
-      res.send('ブログデータの削除が成功しました');
+      res.redirect('/');
+    }
+  });
+});
+
+// User function
+// Create User
+app.get('/user/create', (req, res) => {
+  res.render('userCreate');
+});
+
+app.post('/user/create', (req, res) => {
+  UserModel.create(req.body, (error, savedUserData) => {
+    if (error) {
+      res.render('error', { message: '/user/createのエラー' });
+    } else {
+      res.redirect('/user/login');
+    }
+  });
+});
+
+// user Login
+app.get('/user/login', (req, res) => {
+  res.render('login');
+});
+
+app.post('/user/login', (req, res) => {
+  UserModel.findOne({ email: req.body.email }, (error, savedUserData) => {
+    if (savedUserData) {
+      // ユーザーが存在した場合の処理
+      if (req.body.password === savedUserData.password) {
+        // パスワードが一致した場合の処理
+        req.session.userId = savedUserData._id;
+        res.redirect('/');
+      } else {
+        // パスワードが一致しなかった場合の処理
+        res.render('error', {
+          message: '/user/loginのエラー：パスワードが間違っています',
+        });
+      }
+    } else {
+      // ユーザーが存在しない場合の処理
+      res.render('error', {
+        message: '/user/loginのエラー：ユーザーが存在しません',
+      });
     }
   });
 });
