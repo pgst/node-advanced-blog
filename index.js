@@ -3,6 +3,8 @@ const app = express();
 app.use(express.urlencoded({ extended: true }));
 const mongoose = require('mongoose');
 mongoose.set('strictQuery', false);
+app.set('view engine', 'ejs');
+app.use('/public', express.static('public'));
 
 // Connecting to MongoDB
 mongoose
@@ -27,7 +29,7 @@ const BlogModel = mongoose.model('blog', BlogSchema);
 // BLOG function
 // Create blog
 app.get('/blog/create', (req, res) => {
-  res.sendFile(__dirname + '/views/blogCreate.html');
+  res.render('blogCreate');
 });
 
 app.post('/blog/create', (req, res) => {
@@ -46,22 +48,21 @@ app.post('/blog/create', (req, res) => {
 // Read All Blogs
 app.get('/', async (req, res) => {
   const allBlogs = await BlogModel.find();
-  console.log('全ブログデータ', allBlogs);
-  res.send('全ブログデータを読み取りました');
+  res.render('index', { allBlogs });
 });
 
 // Read Single Blog
 app.get('/blog/:id', async (req, res) => {
   const singleBlog = await BlogModel.findById(req.params.id);
   console.log('singleBlog', singleBlog);
-  res.send('個別の記事ページ');
+  res.render('blogRead', { singleBlog });
 });
 
 // Update Blog
 app.get('/blog/update/:id', async (req, res) => {
   const singleBlog = await BlogModel.findById(req.params.id);
   console.log('singleBlog', singleBlog);
-  res.send('個別の更新ページ');
+  res.render('blogUpdate', { singleBlog });
 });
 
 app.post('/blog/update/:id', async (req, res) => {
@@ -80,7 +81,7 @@ app.post('/blog/update/:id', async (req, res) => {
 app.get('/blog/delete/:id', async (req, res) => {
   const singleBlog = await BlogModel.findById(req.params.id);
   console.log('singleBlog', singleBlog);
-  res.send('個別の削除ページ');
+  res.render('blogDelete', { singleBlog });
 });
 
 app.post('/blog/delete/:id', async (req, res) => {

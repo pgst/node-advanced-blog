@@ -9,7 +9,8 @@
       "extensions": [
 		"mhutchie.git-graph",
 		"esbenp.prettier-vscode",
-		"rangav.vscode-thunder-client"
+		"rangav.vscode-thunder-client",
+		"DigitalBrainstem.javascript-ejs-support"
 	]
     }
   },
