@@ -6,7 +6,11 @@
 	"image": "mcr.microsoft.com/devcontainers/javascript-node:1-20-bullseye",
   "customizations": {
     "vscode": {
-      "extensions": ["mhutchie.git-graph", "esbenp.prettier-vscode"]
+      "extensions": [
+		"mhutchie.git-graph",
+		"esbenp.prettier-vscode",
+		"rangav.vscode-thunder-client"
+	]
     }
   },
   "containerEnv": { "TZ": "Asia/Tokyo" }
